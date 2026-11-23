@@ -1,0 +1,24 @@
+{
+  "services": [
+    {
+      "name": "YouTube",
+      "hosts": ["youtube.com", "googlevideo.com", "youtubei.googleapis.com", "ytimg.com"],
+      "probeUrls": ["https://www.youtube.com/generate_204", "https://www.googlevideo.com/generate_204"]
+    },
+    {
+      "name": "Discord",
+      "hosts": ["discord.com", "discord.gg", "discordapp.com", "discord.media", "discordapp.net", "discordcdn.com"],
+      "probeUrls": ["https://discord.com/api/v10/gateway"]
+    },
+    {
+      "name": "Telegram",
+      "hosts": ["telegram.org", "t.me", "telegram.me", "telegra.ph", "telegram.dog"],
+      "probeUrls": ["https://telegram.org/"]
+    }
+  ],
+  "strategies": [
+    { "name": "Fake TLS", "description": "Fake-пакет и случайный TLS fingerprint", "desync": "fake", "splitPosition": "", "repeats": "6" },
+    { "name": "Fake + multisplit", "description": "Разделение ClientHello в начале и около домена", "desync": "fake,multisplit", "splitPosition": "1,midsld", "repeats": "6" },
+    { "name": "Fake + multidisorder", "description": "Перестановка сегментов ClientHello", "desync": "fake,multidisorder", "splitPosition": "1,midsld", "repeats": "6" }
+  ]
+}

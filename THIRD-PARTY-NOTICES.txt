@@ -1,0 +1,17 @@
+Mertviy bundles unchanged runtime binaries and data from Flowseal
+zapret-discord-youtube 1.9.9d. The MIT license notice is in
+EngineAssets/LICENSE.txt, and the source tag plus release checksums are under
+third_party/sources/Flowseal-1.9.9d and
+third_party/sources/Flowseal-1.9.9d-SHA256SUMS.txt.
+
+WinDivert is included unchanged under its dual LGPLv3/GPLv2 licensing. The
+v2.2.2 source snapshot and complete license are under
+third_party/sources/WinDivert-2.2.2.
+
+The unchanged cygwin1.dll is covered by the Cygwin LGPLv3+ terms and linking
+exception. Its 3.4.10 source snapshot and license files are under
+third_party/sources/Cygwin-3.4.10.
+
+The exact bol-van source commit used to build the bundled winws.exe is not
+identified. Mertviy does not claim to have rebuilt that binary. More detail is
+in third_party/UPSTREAM.md and EngineAssets/THIRD-PARTY-NOTICES.txt.

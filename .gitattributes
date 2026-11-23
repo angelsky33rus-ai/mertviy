@@ -1,0 +1,12 @@
+* text=auto eol=lf
+*.sln text eol=crlf
+*.csproj text eol=crlf
+*.cs text eol=crlf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.exe -text
+*.dll -text
+*.sys -text
+*.bin -text
+third_party/sources/** -text

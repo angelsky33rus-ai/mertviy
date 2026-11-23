@@ -1,0 +1,99 @@
+name: Mertviy release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Validate tag, bundled assets, and notices
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(?<version>\d+\.\d+\.\d+)$') {
+            throw "Release tag must have the form vX.Y.Z; got $tag"
+          }
+          $version = $Matches.version
+          "MERTVIY_VERSION=$version" >> $env:GITHUB_ENV
+
+          $required = @(
+            'EngineAssets/ENGINE_VERSION.txt',
+            'EngineAssets/LICENSE.txt',
+            'EngineAssets/THIRD-PARTY-NOTICES.txt',
+            'third_party/sources/Flowseal-1.9.9d-SHA256SUMS.txt',
+            'third_party/sources/WinDivert-2.2.2/LICENSE',
+            'third_party/sources/Cygwin-3.4.10/COPYING.LIB',
+            'third_party/sources/Cygwin-3.4.10/winsup/CYGWIN_LICENSE'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Required release provenance file is missing: $path"
+            }
+          }
+
+          $manifest = Get-Content 'third_party/sources/Flowseal-1.9.9d-SHA256SUMS.txt'
+          $checks = @{
+            'winws.exe' = 'EngineAssets/winws.exe'
+            'WinDivert.dll' = 'EngineAssets/WinDivert.dll'
+            'WinDivert64.sys' = 'EngineAssets/WinDivert64.sys'
+            'cygwin1.dll' = 'EngineAssets/cygwin1.dll'
+          }
+          foreach ($name in $checks.Keys) {
+            $entry = $manifest | Where-Object { $_ -match "^([0-9a-fA-F]{64})\s+\./bin/$([regex]::Escape($name))$" } | Select-Object -First 1
+            if (-not $entry) { throw "No upstream hash for $name" }
+            $expected = [regex]::Match($entry, '^[0-9a-fA-F]{64}').Value.ToLowerInvariant()
+            $actual = (Get-FileHash -LiteralPath $checks[$name] -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) { throw "Bundled file hash differs from Flowseal 1.9.9d: $name" }
+          }
+
+      - name: Publish self-contained Windows x64 executable
+        shell: pwsh
+        run: >-
+          dotnet publish .\Mertviy.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:VersionPrefix=$env:MERTVIY_VERSION
+          -p:InformationalVersion=$env:MERTVIY_VERSION -o .\publish
+
+      - name: Create checksum asset
+        shell: pwsh
+        run: |
+          $name = "Mertviy-$env:MERTVIY_VERSION-win-x64.exe"
+          $exe = Join-Path 'publish' 'Mertviy.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Publish output is missing Mertviy.exe' }
+          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $name" | Set-Content -NoNewline -Encoding ascii "publish/$name.sha256"
+          Copy-Item -LiteralPath $exe -Destination "publish/$name"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $name = "Mertviy-$env:MERTVIY_VERSION-win-x64.exe"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag "publish/$name" "publish/$name.sha256" --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag "publish/$name" "publish/$name.sha256" `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "Mertviy $env:MERTVIY_VERSION" `
+              --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Could not upload the release assets.' }

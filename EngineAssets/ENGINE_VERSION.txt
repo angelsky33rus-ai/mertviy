@@ -1,0 +1,4 @@
+Flowseal zapret-discord-youtube 1.9.9d
+Source tag commit: d75903b44cb7c8e7eedb998c3dd9ff674d10880a
+Runtime files match SHA256SUMS.txt from that tagged Flowseal distribution.
+The exact bol-van source commit used to build winws.exe is not identified.

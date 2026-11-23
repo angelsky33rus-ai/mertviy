@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Mertviy</AssemblyName>
+    <RootNamespace>Mertviy</RootNamespace>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <InformationalVersion>$(VersionPrefix)</InformationalVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Config\service-profiles.json">
+      <LogicalName>Mertviy.Config.service-profiles.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EngineAssets\**\*">
+      <LogicalName>Mertviy.Engine.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>
