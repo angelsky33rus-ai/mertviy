@@ -70,15 +70,34 @@ jobs:
           -p:VersionPrefix=$env:MERTVIY_VERSION
           -p:InformationalVersion=$env:MERTVIY_VERSION -o .\publish
 
-      - name: Create checksum asset
+      - name: Build MSI installer
         shell: pwsh
         run: |
-          $name = "Mertviy-$env:MERTVIY_VERSION-win-x64.exe"
-          $exe = Join-Path 'publish' 'Mertviy.exe'
-          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Publish output is missing Mertviy.exe' }
-          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $name" | Set-Content -NoNewline -Encoding ascii "publish/$name.sha256"
-          Copy-Item -LiteralPath $exe -Destination "publish/$name"
+          dotnet tool install --tool-path .\tools\wix wix --version 5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install WiX Toolset 5.0.2.' }
+          .\tools\wix\wix.exe build .\packaging\Mertviy.wxs -arch x64 `
+            -d Version=$env:MERTVIY_VERSION -d PublishDir=publish `
+            -o "publish\Mertviy-$env:MERTVIY_VERSION-win-x64.msi"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not build the MSI installer.' }
+
+      - name: Create checksums and versioned assets
+        shell: pwsh
+        run: |
+          $assets = @(
+            @{ Source = 'publish/Mertviy.exe'; Name = "Mertviy-$env:MERTVIY_VERSION-win-x64.exe" },
+            @{ Source = "publish/Mertviy-$env:MERTVIY_VERSION-win-x64.msi"; Name = "Mertviy-$env:MERTVIY_VERSION-win-x64.msi" }
+          )
+          foreach ($asset in $assets) {
+            if (-not (Test-Path -LiteralPath $asset.Source -PathType Leaf)) {
+              throw "Publish output is missing $($asset.Source)"
+            }
+            $versionedPath = "publish/$($asset.Name)"
+            if ($asset.Source -ne $versionedPath) {
+              Copy-Item -LiteralPath $asset.Source -Destination $versionedPath -Force
+            }
+            $hash = (Get-FileHash -LiteralPath $versionedPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($asset.Name)" | Set-Content -NoNewline -Encoding ascii "$versionedPath.sha256"
+          }
 
       - name: Publish GitHub release
         env:
@@ -86,12 +105,13 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $name = "Mertviy-$env:MERTVIY_VERSION-win-x64.exe"
+          $exe = "publish/Mertviy-$env:MERTVIY_VERSION-win-x64.exe"
+          $msi = "publish/Mertviy-$env:MERTVIY_VERSION-win-x64.msi"
           gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag "publish/$name" "publish/$name.sha256" --clobber --repo $env:GITHUB_REPOSITORY
+            gh release upload $tag $exe "$exe.sha256" $msi "$msi.sha256" --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create $tag "publish/$name" "publish/$name.sha256" `
+            gh release create $tag $exe "$exe.sha256" $msi "$msi.sha256" `
               --repo $env:GITHUB_REPOSITORY `
               --title "Mertviy $env:MERTVIY_VERSION" `
               --generate-notes

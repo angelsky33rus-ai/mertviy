@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Mertviy"
+    Manufacturer="Mertviy"
+    Version="$(var.Version)"
+    UpgradeCode="A58C0F92-5B63-4AF2-95E9-63B3B73DD084"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Compressed="yes">
+    <SummaryInformation Description="Mertviy Windows installer" Manufacturer="Mertviy" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Mertviy is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Feature Id="MainFeature" Title="Mertviy" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Mertviy" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Component Id="ApplicationExecutable" Guid="*">
+        <File Id="MertviyExe" Source="$(var.PublishDir)\Mertviy.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="MertviyProgramMenuFolder" Name="Mertviy" />
+    </StandardDirectory>
+
+    <Component Id="StartMenuShortcut" Directory="MertviyProgramMenuFolder" Guid="*">
+      <Shortcut
+        Id="MertviyStartMenuShortcut"
+        Name="Mertviy"
+        Target="[INSTALLFOLDER]Mertviy.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveMertviyProgramMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Mertviy" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

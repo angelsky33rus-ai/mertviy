@@ -10,6 +10,15 @@ Requires the .NET 8 SDK and Windows Desktop targeting pack. The embedded files a
 dotnet publish .\Mertviy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\publish
 ```
 
+To build the MSI after publishing the executable, install WiX Toolset 5.0.2 into a local tools folder and run:
+
+```powershell
+dotnet tool install --tool-path .\tools\wix wix --version 5.0.2
+.\tools\wix\wix.exe build .\packaging\Mertviy.wxs -arch x64 -d Version=0.1.0 -d PublishDir=publish -o .\publish\Mertviy-0.1.0-win-x64.msi
+```
+
+The MSI installs Mertviy per-machine under `Program Files` and creates a Start Menu shortcut for the installing user. It supports major-version upgrades and uninstall through Windows Settings.
+
 ## Notes
 
 - Mertviy requests Administrator privileges because WinDivert needs them.
@@ -25,7 +34,7 @@ At startup Mertviy checks the latest stable release in `angelsky33rus-ai/mertviy
 
 ## Releases
 
-Push a tag in the form `vX.Y.Z` to run `.github/workflows/release.yml`. The workflow validates the bundled runtime files against the Flowseal 1.9.9d checksum manifest, publishes a self-contained `win-x64` executable, and attaches `Mertviy-X.Y.Z-win-x64.exe` plus its SHA-256 sidecar to the GitHub release. The repo must be public for installed builds to read release metadata without a credential.
+Push a tag in the form `vX.Y.Z` to run `.github/workflows/release.yml`. The workflow validates the bundled runtime files against the Flowseal 1.9.9d checksum manifest, publishes a self-contained `win-x64` executable, builds a per-machine MSI installer, and attaches both `Mertviy-X.Y.Z-win-x64.exe` and `Mertviy-X.Y.Z-win-x64.msi` with SHA-256 sidecars to the GitHub release. The repo must be public for installed builds to read release metadata without a credential.
 
 For a new app release, bump `VersionPrefix` in `Mertviy.csproj` to the same version before creating the tag. The engine version is tracked separately in `EngineAssets/ENGINE_VERSION.txt`.
 
